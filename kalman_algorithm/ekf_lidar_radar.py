@@ -13,13 +13,33 @@ import numpy as np
 
 def computeRMSE(trueVector, EstimateVector):
     
-def computeRadarJacobian(Xvector): 
+
     
 def computeCovMatrix(deltaT, sigma_aX, sigma_aY):
+??????????????????????????????????????
     
 
     
 """
+def computeRadarJacobian(Xvector): 
+#The Radar's readings are not linear when we convert them to our cartezian coordinate system.
+#[rho,phi,rho_dot] = [sqrt(Px^2+Py^2), tg^-1(Py/Px),(Px*Vx+Py*Vy)/sqrt(Px^2+Py^2)].
+#we need to develop a first order[linear] approximation around the mean[expected value], because in a normal disturbution this is where most of
+# our values will be.(similar to a taylor series in 1 dimension around a point that will give best approximation)!
+
+# Jacobian matrix h with respect to state variables [Px, Py, Vx, Vy]
+# Assuming h1(Px, Py, Vx, Vy) = rho =sqrt(Px^2+Py^2) , h2(Px, Py, Vx, Vy) = phi = tg^-1(Py/Px), and h3(Px, Py, Vx, Vy) = rho_dot =(Px*Vx+Py*Vy)/sqrt(Px^2+Py^2)
+# h = [[ dh1/dPx  dh1/dPy  dh1/dVx  dh1/dVy ],
+#      [ dh2/dPx  dh2/dPy  dh2/dVx  dh2/dVy ],
+#      [ dh3/dPx  dh3/dPy  dh3/dVx  dh3/dVy ]]
+#when solving we get:
+#
+    
+    h_radar = 
+
+
+    return h_radar
+
 def computeFmatrix(deltaT):
 # Motion Model for a 2D Robot Vacuum Cleaner (Discrete Time) with a const linear speed.
 # State vector: [Px, Py, Vx, Vy, Yaw, Yaw Rate]
@@ -86,38 +106,23 @@ def main():
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.01]   # Low uncertainty in yaw rate
     ])
 
-
-
-
-
-
     H_Lidar = np.matrix([[1,0,0,0,0,0],
                         [0,1,0,0,0,0]])
     R_lidar = np.array([[0.0225, 0.0],
                         [0.0, 0.0225]]) #known
-    
     R_radar = np.array([[0.9, 0, 0],
                         [0.0, 0.0009, 0],
                         [0, 0, 0.09]])  #known
     useRadar = False
-
-
-    """
-    
-    
-
-
-
     xEstimate = []
-    xTrue = []
-   
-    
-    
-    X_state_current = []
-    X_true_current = []
+    xTrue = []  
+    #fill in X_true and X_state. Put 0 for the velocities
+    X_state_current = [1.2,1.2,0.0,0.0,0.2,0.03] #initial state guess
+    X_true_current = [2.0,2.4,0.0,0.0,0.1,0.06]  #initial state true!(suppose we know it)
+
     firstMeasurment = data.iloc[0,:].values
     timeStamp = firstMeasurment[3]
-    #fill in X_true and X_state. Put 0 for the velocities
+    
     for index in range(1,len(data)):
         currentMeas = data.iloc[i,:].values
 
@@ -128,8 +133,9 @@ def main():
             timeStamp = currentMeas[3]
             
             #perfrom predict
-            X_state_current = 
-            P  = 
+            F = computeFmatrix(deltaT)
+            X_state_current =  F * X_state_current 
+            P  = F * P * F.transpose()
 
             #pefrom measurment update
             z = 
@@ -138,6 +144,11 @@ def main():
             X_state_current = 
             P  = 
             
+
+
+    """
+    
+   
             
         if(currentMeas[0]=='R' and useRadar):
             
