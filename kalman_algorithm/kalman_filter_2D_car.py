@@ -8,13 +8,14 @@ from numpy.linalg import inv
 
 ###########################################3
 #2D car with a constant velocity (acceleration = 0)
-#NEED TO ADJUST CODE FOR A 1X4 VECTOR STATE 
 #CANT MEASURE VELOCITY
-#SEE ALL THE NEW DIMENSIONS OF ALL THE MATRICES AND ADJUST IF NECCESERY!
+
 
 dt=0.01
 ##########################################
 #We have in our model of the system some kind of uncertainty
+#the value of the paramters inside here are an INITIAL GUESS ONLY and will be updated next in the algorithm!
+
 model_uncertainty_position_x = 1.0 #my selection: [m] model's position uncertainty  [sigma_px]
 model_uncertainty_position_y = 1.0 #my selection: [m] model's position uncertainty[  [sigma_py]
 
@@ -42,6 +43,8 @@ sensor_uncertainty_position_y = 0.6 #my selection: [m] sensor's position uncerta
 #same idea for sigma_py_vy. the rest is 0 for example: sigma_px_py = 0 and sigma_px_vy = 0.
 #moreover the covariance matrix is symetrical hence : sigma_px_py = sigma_py_px.
 #The P matrix (state covariance) represents the uncertainty of the state (position and velocity in this case), after incorporating the system dynamics and predictions.
+
+#the value of the paramters inside here are an INITIAL GUESS ONLY and will be updated next in the algorithm!
 P = np.matrix([[model_uncertainty_position_x**2 , 0 , model_uncertainty_velocity_x * dt , 0],
                [0, model_uncertainty_position_y**2 , 0 , model_uncertainty_velocity_y * dt ],
                [model_uncertainty_velocity_x * dt ,0,model_uncertainty_velocity_x**2, 0],
