@@ -21,21 +21,33 @@ def computeCovMatrix(deltaT, sigma_aX, sigma_aY):
 
     
 """
-def computeRadarJacobian(Xvector): 
+def computeRadarJacobian(Xvector): # Jacobian matrix h with respect to state variables [Px, Py, Vx, Vy , yaw, yawRate]
 #The Radar's readings are not linear when we convert them to our cartezian coordinate system.
 #[rho,phi,rho_dot] = [sqrt(Px^2+Py^2), tg^-1(Py/Px),(Px*Vx+Py*Vy)/sqrt(Px^2+Py^2)].
 #we need to develop a first order[linear] approximation around the mean[expected value], because in a normal disturbution this is where most of
 # our values will be.(similar to a taylor series in 1 dimension around a point that will give best approximation)!
 
-# Jacobian matrix h with respect to state variables [Px, Py, Vx, Vy]
+# Jacobian matrix h with respect to state variables [Px, Py, Vx, Vy , yaw, yawRate]
 # Assuming h1(Px, Py, Vx, Vy) = rho =sqrt(Px^2+Py^2) , h2(Px, Py, Vx, Vy) = phi = tg^-1(Py/Px), and h3(Px, Py, Vx, Vy) = rho_dot =(Px*Vx+Py*Vy)/sqrt(Px^2+Py^2)
-# h = [[ dh1/dPx  dh1/dPy  dh1/dVx  dh1/dVy ],
-#      [ dh2/dPx  dh2/dPy  dh2/dVx  dh2/dVy ],
-#      [ dh3/dPx  dh3/dPy  dh3/dVx  dh3/dVy ]]
+# h = [[ dh1/dPx  dh1/dPy  dh1/dVx  dh1/dVy dh1/dyaw dh1/dyawRate],
+#      [ dh2/dPx  dh2/dPy  dh2/dVx  dh2/dVy dh2/dyaw dh2/dyawRate ],
+#      [ dh3/dPx  dh3/dPy  dh3/dVx  dh3/dVy dh3/dyaw dh3/dyawRate ]]
 #when solving we get:
+# h = [[ d(sqrt(Px^2+Py^2))/dPx  d(sqrt(Px^2+Py^2))/dPy  d(sqrt(Px^2+Py^2))/dVx  d(sqrt(Px^2+Py^2))/dVy d(sqrt(Px^2+Py^2))/dyaw d(sqrt(Px^2+Py^2))/dyawRate],
+#      [ d(tg^-1(Py/Px))/dPx  d(tg^-1(Py/Px))/dPy d(tg^-1(Py/Px))/dVx  d(tg^-1(Py/Px))/dVy d(tg^-1(Py/Px))/dyaw d(tg^-1(Py/Px))/dyawRate ],
+#      [ d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dPx  d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dPy  d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dVx  d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dVy d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dyaw d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dyawRate ]]
 #
-    
-    h_radar = 
+    Px = Xvector[0]
+    Py = Xvector[1] 
+    vx = Xvector[2] 
+    vy = Xvector[3]
+    yaw = Xvector[4]
+    yawRate = Xvector[5]
+    #for conviniecnce let us define :
+    P_square =Px**2+Py**2 
+    h_radar = [[ Px/(P_square)**0.5 , Py/(P_square)**0.5 , 0 , 0 , 0 ,0],
+      [ -Px/(P_square) , Px/(P_square) , 0 , 0 , 0, 0 ],
+      [ (Py*(vx*Py-vy*Px))/(P_square)**1.5  , (Px*(vy*Px-vx*Py))/(P_square)**1.5 , Px/(P_square)**0.5 , Py/(P_square)**0.5 , 0 , 0 ]] 
 
 
     return h_radar
@@ -82,7 +94,6 @@ def main():
 
     #define matrices:   
     deltaT = 0.1 #known for an initial guess!
-
     F_matrix = computeFmatrix(deltaT)
     # Covariance matrix (Sigma)
 # [
@@ -133,9 +144,9 @@ def main():
             timeStamp = currentMeas[3]
             
             #perfrom predict
-            F = computeFmatrix(deltaT)
-            X_state_current =  F * X_state_current 
-            P  = F * P * F.transpose()
+
+            X_state_current =  F_matrix * X_state_current 
+            P  = F_matrix * P * F_matrix.transpose()
 
             #pefrom measurment update
             z = 
@@ -147,8 +158,6 @@ def main():
 
 
     """
-    
-   
             
         if(currentMeas[0]=='R' and useRadar):
             
@@ -159,7 +168,7 @@ def main():
             P  = 
             
             #pefrom measurment update
-            jacobian =
+            jacobian = computeRadarJacobian(X_state_current)
             z = 
             S = 
             K = 
