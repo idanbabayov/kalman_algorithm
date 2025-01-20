@@ -11,16 +11,37 @@ import numpy as np
 """
 #Fill in Those functions:
 
-def computeRMSE(trueVector, EstimateVector):
+
     
 
     
-def computeCovMatrix(deltaT, sigma_aX, sigma_aY):
-??????????????????????????????????????
+#def computeCovMatrix(deltaT, sigma_aX, sigma_aY):
+
     
 
     
 """
+
+def computeRmse(trueVector, EstimateVector):
+    # Ensure that both trueVector and EstimateVector are NumPy arrays for element-wise operations
+    trueVector = np.array(trueVector)
+    EstimateVector = np.array(EstimateVector)
+
+    # Check if the shapes of the true and estimate vectors are compatible
+    if trueVector.shape != EstimateVector.shape:
+        raise ValueError(f"Input vectors must have the same shape. Got {trueVector.shape} and {EstimateVector.shape}.")
+
+    # Compute squared differences
+    squared_diff = (trueVector - EstimateVector) ** 2
+
+    # Compute the mean squared error for each state component (across all measurements)
+    mse = np.mean(squared_diff, axis=0)
+
+    # Compute the RMSE by taking the square root of the mean squared error
+    rmse = np.sqrt(mse)
+
+    return rmse
+
 def computeRadarJacobian(Xvector): # Jacobian matrix h with respect to state variables [Px, Py, Vx, Vy , yaw, yawRate]
 #The Radar's readings are not linear when we convert them to our cartezian coordinate system.
 #[rho,phi,rho_dot] = [sqrt(Px^2+Py^2), tg^-1(Py/Px),(Px*Vx+Py*Vy)/sqrt(Px^2+Py^2)].
@@ -109,9 +130,9 @@ def main():
 # It is an initial guess of the uncertainty of the inital guess of the state.
 
     P = np.array([
-        [4.0, 1.0, 0.0, 0.0, 0.0, 0.0],  # High uncertainty in Px, small covariance with Vx
+        [1.0, 1.0, 0.0, 0.0, 0.0, 0.0],  # High uncertainty in Px, small covariance with Vx
         [1.0, 1.0, 0.0, 0.0, 0.0, 0.0],   # Small covariance between Px and Vx
-        [0.0, 0.0, 4.0, 1.0, 0.0, 0.0],  # High uncertainty in Py, small covariance with Vy
+        [0.0, 0.0, 1.0, 1.0, 0.0, 0.0],  # High uncertainty in Py, small covariance with Vy
         [0.0, 0.0, 1.0, 1.0, 0.0, 0.0],   # Small covariance between Py and Vy
         [0.0, 0.0, 0.0, 0.0, 0.1, 0.0],   # Low uncertainty in yaw
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.01]   # Low uncertainty in yaw rate
@@ -128,32 +149,55 @@ def main():
     xEstimate = []
     xTrue = []  
     #fill in X_true and X_state. Put 0 for the velocities
-    X_state_current = [1.2,1.2,0.0,0.0,0.2,0.03] #initial state guess
-    X_true_current = [2.0,2.4,0.0,0.0,0.1,0.06]  #initial state true!(suppose we know it)
+    X_state_current = np.array([1.2,1.2,0.0,0.0,0.2,0.03]) #initial state guess
+    X_true_current = np.array([2.0,2.4,0.0,0.0,0.1,0.06]) #initial state true!(suppose we know it)
 
     firstMeasurment = data.iloc[0,:].values
     timeStamp = firstMeasurment[3]
+    counter = 0
     
-    for index in range(1,len(data)):
+    for i in range(1,len(data)):
         currentMeas = data.iloc[i,:].values
 
         # compute the current dela t
         if(currentMeas[0]=='L'):
+            for j in range(4,len(X_true_current)):
+                X_true_current[j-4] = currentMeas[j] #for each measurement we can take from the table the true value of the specified measurement.
             
             deltaT = (currentMeas[3]- timeStamp)/1000000
             timeStamp = currentMeas[3]
             
             #perfrom predict
 
-            X_state_current =  F_matrix * X_state_current 
+            X_state_current =  F_matrix * X_state_current.reshape(-1,1)
             P  = F_matrix * P * F_matrix.transpose()
 
             #pefrom measurment update
-            z = 
-            S = 
-            K = 
-            X_state_current = 
-            P  = 
+            z = np.matrix([[currentMeas[1]],
+                        [currentMeas[2]]])  # Convert Px and Py measurement to column vector
+            S = H_Lidar * P * H_Lidar.transpose() #sigma (error) of the predicted state converted into the measurement space!
+            K = P * H_Lidar.transpose()*np.linalg.inv(S + R_lidar) #SEE THAT IT IS THE SAME! P * H.transpose()*np.linalg.inv(H * P * H.transpose()+ R)
+            y = H_Lidar * X_state_current #mu(best estimate) of the predicted measurement converted into the measurement space!
+
+            X_state_current = X_state_current + K*(z-y)  #SEE THAT IT IS THE SAME! x + K * (Z - H * x ))
+            P = (np.eye(6) - (K * H_Lidar)) * P # this is simplification of P - K * H * P 
+            #print(np.shape(X_state_current))
+        
+        xEstimate.append(X_state_current.reshape(6, 1))  # Ensure it's 6x1
+        print(np.shape(xEstimate))  # Should print (499, 6)
+
+        
+        #xTrue.append(X_true_current)
+        #print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+        #print("xestimate is",xEstimate[-1].transpose())
+        #print("xtrue is:",xTrue[-1])
+        #counter +=1
+        #print("counter",counter)
+    #print(np.shape(xTrue))  # Should print (499, 6)
+    #print(np.shape(xEstimate))  # Should print (499, 6)
+            
+    #rmse = computeRmse(xEstimate, xTrue) 
+    #print(rmse)
             
 
 
@@ -177,7 +221,7 @@ def main():
             
             
             
-        xEstimate.append(X_state_current)
+        xEstimate.append(X_state_current) 
         xTrue.append(X_true_current)
             
     rmse = computeRmse(xEstimate, xTrue) 

@@ -84,7 +84,7 @@ def filter(x, P, u, measurements):
         Z = np.matrix([[measurements[n][0]],
                         [measurements[n][1]]])  # Convert measurement to column vector
         y = H * x #mu(best estimate) of the predicted measurement converted into the measurement space!
-        S =  H * P *H.transpose()#sigma (error) of the predicted measurement converted into the measurement space!
+        S =  H * P *H.transpose()#sigma (error) of the predicted state converted into the measurement space!
         K = P * H.transpose()*np.linalg.inv(S + R) #SEE THAT IT IS THE SAME! P * H.transpose()*np.linalg.inv(H * P * H.transpose()+ R)
         x =  x + K * (Z - y ) #SEE THAT IT IS THE SAME! x + K * (Z - H * x )
         P = (I - (K * H)) * P # this is simplification of P - K * H * P 
