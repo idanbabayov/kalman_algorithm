@@ -5,6 +5,8 @@
 
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 
 
@@ -115,6 +117,64 @@ def computeProcessNoiseCovMatrix(deltaT, sigma_aX, sigma_aY):
                    [0,  deltaT]])#Deterministic matrix 
     Q = G * a_matrix*G.transpose()
     return Q
+import matplotlib.pyplot as plt
+
+def plot_position_and_velocity(estimated_positions, true_positions, time_steps):
+    # Convert to numpy array for plotting
+    estimated_positions = np.array(estimated_positions)
+    true_positions = np.array(true_positions)
+
+    # Extract estimated position and velocity for x and y
+    estimated_positions_x = estimated_positions[:, 0]  # Estimated position in x (Px)
+    estimated_positions_y = estimated_positions[:, 1]  # Estimated position in y (Py)
+    estimated_velocities_x = estimated_positions[:, 2]  # Estimated velocity in x (Vx)
+    estimated_velocities_y = estimated_positions[:, 3]  # Estimated velocity in y (Vy)
+
+    # Extract true position and velocity for x and y
+    true_positions_x = true_positions[:, 0]  # True position in x (Px)
+    true_positions_y = true_positions[:, 1]  # True position in y (Py)
+    true_velocities_x = true_positions[:, 2]  # True velocity in x (Vx)
+    true_velocities_y = true_positions[:, 3]  # True velocity in y (Vy)
+
+    # Create a 2x2 grid of subplots
+    fig, axs = plt.subplots(2, 2, figsize=(12, 8))
+    
+    # Plot 1: Position X (True vs Estimated)
+    axs[0, 0].plot(time_steps, true_positions_x, label='True Position X', color='orange', linestyle='-.')
+    axs[0, 0].plot(time_steps, estimated_positions_x, label='Estimated Position X', color='r', linestyle='--')
+    axs[0, 0].set_title('Position X (True vs Estimated)')
+    axs[0, 0].set_xlabel('Time (s)')
+    axs[0, 0].set_ylabel('Position X')
+    axs[0, 0].legend()
+
+    # Plot 2: Position Y (True vs Estimated)
+    axs[0, 1].plot(time_steps, true_positions_y, label='True Position Y', color='green', linestyle='-.')
+    axs[0, 1].plot(time_steps, estimated_positions_y, label='Estimated Position Y', color='b', linestyle='--')
+    axs[0, 1].set_title('Position Y (True vs Estimated)')
+    axs[0, 1].set_xlabel('Time (s)')
+    axs[0, 1].set_ylabel('Position Y')
+    axs[0, 1].legend()
+
+    # Plot 3: Velocity X (True vs Estimated)
+    axs[1, 0].plot(time_steps, true_velocities_x, label='True Velocity X', color='purple', linestyle='--')
+    axs[1, 0].plot(time_steps, estimated_velocities_x, label='Estimated Velocity X', color='g', linestyle='-')
+    axs[1, 0].set_title('Velocity X (True vs Estimated)')
+    axs[1, 0].set_xlabel('Time (s)')
+    axs[1, 0].set_ylabel('Velocity X')
+    axs[1, 0].legend()
+
+    # Plot 4: Velocity Y (True vs Estimated)
+    axs[1, 1].plot(time_steps, true_velocities_y, label='True Velocity Y', color='brown', linestyle='--')
+    axs[1, 1].plot(time_steps, estimated_velocities_y, label='Estimated Velocity Y', color='m', linestyle='-')
+    axs[1, 1].set_title('Velocity Y (True vs Estimated)')
+    axs[1, 1].set_xlabel('Time (s)')
+    axs[1, 1].set_ylabel('Velocity Y')
+    axs[1, 1].legend()
+
+    # Adjust layout to make sure there's no overlap
+    plt.tight_layout()
+    plt.show()
+
     
 def main():
     my_cols = ["A", "B", "C", "D", "E","f","g","h","i","j","k"]
@@ -138,6 +198,8 @@ def main():
     useRadar = True
     xEstimate = []
     xTrue = []  
+    time_steps = []  # List to store time steps for plotting
+
     #fill in X_true and X_state. Put 0 for the velocities
     X_state_current = np.array([2.2,1.2,0.0,0.0]) #initial state guess
     X_true_current = np.array([0.0,0.0,0.0,0.0]) #initial empty
@@ -150,8 +212,8 @@ def main():
 
         # compute the current delta t
         if(currentMeas[0]=='L'):
-            for j in range(4,len(X_true_current)):
-                X_true_current[j-4] = currentMeas[j] #for each measurement we can take from the table the true value of the specified measurement.
+            for j in range(1,len(X_true_current)):
+                X_true_current[j-1] = currentMeas[j+3] #for each measurement we can take from the table the true value of the specified measurement.
 
             deltaT = (currentMeas[3]- timeStamp)/1000000
             timeStamp = currentMeas[3]
@@ -204,10 +266,14 @@ def main():
                         
         xEstimate.append(X_state_current) 
         xTrue.append(X_true_current.reshape(-1,1))
-    print(np.shape(xTrue))  
+        time_steps.append(timeStamp)  # Store the current time step
+
+    print((xTrue))  
     print(np.shape(xEstimate)) 
     rmse = computeRmse(xEstimate, xTrue) 
     print(rmse)
+    plot_position_and_velocity(xEstimate, xTrue, time_steps)
+
             
 
 
