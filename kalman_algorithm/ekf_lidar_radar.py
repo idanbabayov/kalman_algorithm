@@ -46,7 +46,7 @@ def computeRmse(trueVector, EstimateVector):
 
     return rmse
 
-def computeRadarJacobian(Xvector): # Jacobian matrix h with respect to state variables [Px, Py, Vx, Vy , yaw, yawRate]
+def computeRadarJacobian(Xvector): # Jacobian matrix h with respect to state variables [Px, Py, Vx, Vy ]
 #The Radar's readings are not linear when we convert them to our cartezian coordinate system.
 #[rho,phi,rho_dot] = [sqrt(Px^2+Py^2), tg^-1(Py/Px),(Px*Vx+Py*Vy)/sqrt(Px^2+Py^2)].
 #we need to develop a first order[linear] approximation around the mean[expected value], because in a normal disturbution this is where most of
@@ -58,21 +58,25 @@ def computeRadarJacobian(Xvector): # Jacobian matrix h with respect to state var
 #      [ dh2/dPx  dh2/dPy  dh2/dVx  dh2/dVy  ],
 #      [ dh3/dPx  dh3/dPy  dh3/dVx  dh3/dVy ]]
 #when solving we get:
-# h = [[ d(sqrt(Px^2+Py^2))/dPx  d(sqrt(Px^2+Py^2))/dPy  d(sqrt(Px^2+Py^2))/dVx  d(sqrt(Px^2+Py^2))/dVy d(sqrt(Px^2+Py^2))/dyaw d(sqrt(Px^2+Py^2))/dyawRate],
-#      [ d(tg^-1(Py/Px))/dPx  d(tg^-1(Py/Px))/dPy d(tg^-1(Py/Px))/dVx  d(tg^-1(Py/Px))/dVy d(tg^-1(Py/Px))/dyaw d(tg^-1(Py/Px))/dyawRate ],
-#      [ d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dPx  d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dPy  d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dVx  d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dVy d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dyaw d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dyawRate ]]
+# h = [[ d(sqrt(Px^2+Py^2))/dPx  d(sqrt(Px^2+Py^2))/dPy  d(sqrt(Px^2+Py^2))/dVx  d(sqrt(Px^2+Py^2))/dVy ],
+#      [ d(tg^-1(Py/Px))/dPx  d(tg^-1(Py/Px))/dPy d(tg^-1(Py/Px))/dVx  d(tg^-1(Py/Px))/dVy  ],
+#      [ d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dPx  d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dPy  d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dVx  d((Px*Vx+Py*Vy)/sqrt(Px^2+Py^2))/dVy  ]]
 #
-    Px = Xvector[0]
-    Py = Xvector[1] 
-    vx = Xvector[2] 
-    vy = Xvector[3]
+    # Assuming Xvector is a 2D column vector of shape (4, 1) [Px, Py, Vx, Vy]
+    Px = Xvector[0, 0]  # Extract the scalar value from the 2D column vector
+    Py = Xvector[1, 0]  # Extract the scalar value from the 2D column vector
+    vx = Xvector[2, 0]  # Extract the scalar value from the 2D column vector
+    vy = Xvector[3, 0]  # Extract the scalar value from the 2D column vector
 
-    #for conviniecnce let us define :
-    P_square =Px**2+Py**2 
-    h_radar = [[ Px/(P_square)**0.5 , Py/(P_square)**0.5 , 0 , 0 , 0 ,0],
-      [ -Px/(P_square) , Px/(P_square) , 0 , 0 , 0, 0 ],
-      [ (Py*(vx*Py-vy*Px))/(P_square)**1.5  , (Px*(vy*Px-vx*Py))/(P_square)**1.5 , Px/(P_square)**0.5 , Py/(P_square)**0.5 , 0 , 0 ]] 
-
+    # For convenience, define:
+    P_square = Px**2 + Py**2 
+    h_radar = np.array([
+        [ Px / np.sqrt(P_square),    Py / np.sqrt(P_square),    0,    0 ],
+        [ -Py / P_square,            Px / P_square,             0,    0 ],
+        [ (Py * (vx * Py - vy * Px)) / np.power(P_square, 1.5),
+          (Px * (vy * Px - vx * Py)) / np.power(P_square, 1.5),
+          Px / np.sqrt(P_square),    Py / np.sqrt(P_square) ]
+    ])
 
     return h_radar
 
@@ -116,7 +120,7 @@ def main():
     R_radar = np.array([[0.9, 0, 0],
                         [0.0, 0.0009, 0],
                         [0, 0, 0.09]])  #known
-    useRadar = False
+    useRadar = True
     xEstimate = []
     xTrue = []  
     #fill in X_true and X_state. Put 0 for the velocities
@@ -124,7 +128,7 @@ def main():
     X_true_current = np.array([0.0,0.0,0.0,0.0]) #initial empty
 
     firstMeasurment = data.iloc[0,:].values
-    timeStamp = firstMeasurment[3]
+    timeStamp = firstMeasurment[3] #this is t_zero of out system
     
     for i in range(1,len(data)):
         currentMeas = data.iloc[i,:].values
@@ -138,23 +142,53 @@ def main():
             timeStamp = currentMeas[3]
            
             #perfrom predict
-            F_matrix = computeFmatrix(deltaT)
-            X_state_current =  F_matrix * X_state_current.reshape(-1,1)
-            P  = F_matrix * P * F_matrix.transpose()
+            if deltaT > 0:
+                F_matrix = computeFmatrix(deltaT) # the prediction is for each time we got a measurment update from sensor
+                X_state_current =  F_matrix * X_state_current.reshape(-1,1)
+                P  = F_matrix * P * F_matrix.transpose()
+            if deltaT == 0: #the predictoin was already done for this deltaT between states.
+                print("dt=0 and the time is:",timeStamp,"and the line is",i)
 
             #pefrom measurment update
             z = np.matrix([[currentMeas[1]],
                         [currentMeas[2]]])  # Convert Px and Py measurement to column vector
+            y = H_Lidar * X_state_current #mu(best estimate) of the predicted state converted into the measurement[Lidar] space!
             S = H_Lidar * P * H_Lidar.transpose() #sigma (error) of the predicted state converted into the measurement space!
             K = P * H_Lidar.transpose()*np.linalg.inv(S + R_lidar) #SEE THAT IT IS THE SAME! P * H.transpose()*np.linalg.inv(H * P * H.transpose()+ R)
-            y = H_Lidar * X_state_current #mu(best estimate) of the predicted measurement converted into the measurement space!
 
             X_state_current = X_state_current + K*(z-y)  #SEE THAT IT IS THE SAME! x + K * (Z - H * x ))
 
             P = (np.eye(4) - (K * H_Lidar)) * P # this is simplification of P - K * H * P 
+
+        if(currentMeas[0]=='R' and useRadar):
+
+            deltaT = (currentMeas[4]- timeStamp)/1000000
+            timeStamp = currentMeas[4]
+             #perfrom predict
+
+            if deltaT > 0:
+                F_matrix = computeFmatrix(deltaT) # the prediction is for each time we got a measurment update from sensor
+                X_state_current =  F_matrix * X_state_current.reshape(-1,1)
+                P  = F_matrix * P * F_matrix.transpose()
+            if deltaT == 0: #the predictoin was already done for this deltaT between states.
+                print("dt=0 and the time is:",timeStamp,"and the line is",i)
+
+            
+            #pefrom measurment update
+            jacobian = computeRadarJacobian(X_state_current) # In this case the jacobian is an approximation of transformation from 
+            #the prediction state space into the measurement space, because the measurement space is not linear for Px,Py,vx,vy.
+            z = np.matrix([[currentMeas[1]],
+                        [currentMeas[2]],
+                        [currentMeas[3]]])  # Convert rho,phi,rho_dot to column vector
+            y = jacobian * X_state_current #mu(best estimate) of the predicted state converted into the measurement[Radar] space!
+            S = jacobian * P * jacobian.transpose()  #sigma (uncertainty) of the predicted state converted into the measurement space!
+            K = P * jacobian.transpose()*np.linalg.inv(S+R_radar)
+            X_state_current = X_state_current + K*(z - y)
+            P = (np.eye(4) - (K * jacobian)) * P # this is simplification of P - K * H * P 
+            
                         
-            xEstimate.append(X_state_current) 
-            xTrue.append(X_true_current.reshape(-1,1))
+        xEstimate.append(X_state_current) 
+        xTrue.append(X_true_current.reshape(-1,1))
     print(np.shape(xTrue))  
     print(np.shape(xEstimate)) 
     rmse = computeRmse(xEstimate, xTrue) 
@@ -162,35 +196,6 @@ def main():
             
 
 
-    """
-            
-        if(currentMeas[0]=='R' and useRadar):
-            
-             #perfrom predict
-            deltaT = (currentMeas[4]- timeStamp)/1000000
-            timeStamp = currentMeas[4]
-            X_state_current = 
-            P  = 
-            
-            #pefrom measurment update
-            jacobian = computeRadarJacobian(X_state_current)
-            z = 
-            S = 
-            K = 
-            X_state_current = 
-            P  = 
-            
-            
-            
-        xEstimate.append(X_state_current) 
-        xTrue.append(X_true_current)
-            
-    rmse = computeRmse(xEstimate, xTrue) 
-    print(rmse)
-
-    """
-        
-    
 
 if __name__ == '__main__':
     main()
