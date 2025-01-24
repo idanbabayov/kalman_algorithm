@@ -8,7 +8,7 @@ import numpy as np
 
 
 
-def computeCovMatrix(deltaT, sigma_aX, sigma_aY):
+def computeCovMatrix():
         # Covariance matrix (Sigma)
 # [
 #     [sigma_px^2, sigma_px_py, sigma_px_vx, sigma_px_vy],  # Covariance between position x and other variables
@@ -102,6 +102,19 @@ def computeFmatrix(deltaT):
                     [0,0,0,1]])
 
     return F   
+
+def computeProcessNoiseCovMatrix(deltaT, sigma_aX, sigma_aY):
+    #It can be disturbed by a gust of wind or road bumps, which has a force effect-which lead to change in acceleration.
+    # it is random acceleration changes with a normal distibution. it has a zero average.
+    #It is easy to calculate by placing the vector and then multiplying it by the assumed standard deviation for the acceleration.
+    a_matrix = np.matrix([[sigma_aX , 0], 
+                          [0, sigma_aY ]])
+    G = np.matrix([[0.5*deltaT**2 , 0],
+                   [0, 0.5*deltaT**2],
+                   [deltaT , 0],
+                   [0,  deltaT]])#Deterministic matrix 
+    Q = G * a_matrix*G.transpose()
+    return Q
     
 def main():
     my_cols = ["A", "B", "C", "D", "E","f","g","h","i","j","k"]
@@ -110,8 +123,10 @@ def main():
 
     #define matrices:   
     deltaT = 0.1#known for an initial guess!
+    aX = 0.4 #known for a guess estimation!----see remarks at the end of the code
+    aY = 0.0 #known for a guess estimation!----see remarks at the end of the code
 
-    P = computeCovMatrix(deltaT, 1.0, 1.0)
+    P = computeCovMatrix()
 
     H_Lidar = np.matrix([[1,0,0,0],
                         [0,1,0,0]])
@@ -145,7 +160,7 @@ def main():
             if deltaT > 0:
                 F_matrix = computeFmatrix(deltaT) # the prediction is for each time we got a measurment update from sensor
                 X_state_current =  F_matrix * X_state_current.reshape(-1,1)
-                P  = F_matrix * P * F_matrix.transpose()
+                P  = F_matrix * P * F_matrix.transpose() + computeProcessNoiseCovMatrix(deltaT,aX,aY)
             if deltaT == 0: #the predictoin was already done for this deltaT between states.
                 print("dt=0 and the time is:",timeStamp,"and the line is",i)
 
@@ -169,7 +184,7 @@ def main():
             if deltaT > 0:
                 F_matrix = computeFmatrix(deltaT) # the prediction is for each time we got a measurment update from sensor
                 X_state_current =  F_matrix * X_state_current.reshape(-1,1)
-                P  = F_matrix * P * F_matrix.transpose()
+                P  = F_matrix * P * F_matrix.transpose() + computeProcessNoiseCovMatrix(deltaT,aX,aY)
             if deltaT == 0: #the predictoin was already done for this deltaT between states.
                 print("dt=0 and the time is:",timeStamp,"and the line is",i)
 
@@ -199,3 +214,16 @@ def main():
 
 if __name__ == '__main__':
     main()
+"""
+Filter design: How do I choose Q and R?
+Overall, no matter how large the numerical values are, but rather in what proportion they are.
+If the values chosen are ten times larger, this will hardly affect the filter.
+The ratio of values ​​is crucial. The correct choice would be directly responsible for the filter performance
+and form the basic question of filter design.
+This either / or question can only be decided on an application-specific basis. In some cases:
+We would just want to filter poorly measuring sensors for a relatively constant process. For example,
+    we can implement kalman filter to optimize temperature controller in a furnace in a rocket or in chemical furnace.
+We would also want to merge several sensors and the dynamics should be preserved.
+Accordingly, the matrices should be selected. 
+Alternatively, of course, the filter can be designed to adapt automatically during operation.
+"""
