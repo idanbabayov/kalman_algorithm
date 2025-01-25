@@ -22,9 +22,12 @@ def computeCovMatrix():
 # Example of a possible P matrix: Initial state covariance matrix P (6x6) with covariance between position and velocity
 # It is an initial guess of the uncertainty of the inital guess of the state.
 
-
-    cov = np.eye(4)  # Start with an identity matrix (or any other initial guess)
-    cov *= 1000      # Scale it to represent high initial uncertainty
+    cov = np.matrix([ [1.0,0,0,0],
+                    [0,0.5,0,0],
+                    [0,0,2.2,0],
+                    [0,0,0,0.2]])
+    #cov = np.eye(4)  # Start with an identity matrix (or any other initial guess)
+    #cov *= 0.02     # Scale it to represent high initial uncertainty
     return cov
 
 def computeRmse(trueVector, EstimateVector):
