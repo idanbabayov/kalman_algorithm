@@ -183,8 +183,8 @@ def main():
 
     #define matrices:   
     deltaT = 0.1#known for an initial guess!
-    aX = 0.4 #known for a guess estimation!----see remarks at the end of the code
-    aY = 0.0 #known for a guess estimation!----see remarks at the end of the code
+    aX = 0.06#known for a guess estimation!----see remarks at the end of the code
+    aY = 0.015 #known for a guess estimation!----see remarks at the end of the code
 
     P = computeCovMatrix()
 
@@ -212,8 +212,11 @@ def main():
 
         # compute the current delta t
         if(currentMeas[0]=='L'):
-            for j in range(1,len(X_true_current)):
-                X_true_current[j-1] = currentMeas[j+3] #for each measurement we can take from the table the true value of the specified measurement.
+            # Ensure that all positions in X_true_current are updated
+            X_true_current[0] = np.float64(currentMeas[4])  # Update first element (X position)
+            X_true_current[1] = np.float64(currentMeas[5])  # Update second element (Y position)
+            X_true_current[2] = np.float64(currentMeas[6])  # Update third element (vx )
+            X_true_current[3] = np.float64(currentMeas[7])  # Update fourth element (vy)
 
             deltaT = (currentMeas[3]- timeStamp)/1000000
             timeStamp = currentMeas[3]
@@ -238,6 +241,12 @@ def main():
             P = (np.eye(4) - (K * H_Lidar)) * P # this is simplification of P - K * H * P 
 
         if(currentMeas[0]=='R' and useRadar):
+            # Ensure that all positions in X_true_current are updated
+            X_true_current[0] = np.float64(currentMeas[5])  # Update first element (X position)
+            X_true_current[1] = np.float64(currentMeas[6])  # Update second element (Y position)
+            X_true_current[2] = np.float64(currentMeas[7])  # Update third element (vx )
+            X_true_current[3] = np.float64(currentMeas[8])  # Update fourth element (vy)
+            
 
             deltaT = (currentMeas[4]- timeStamp)/1000000
             timeStamp = currentMeas[4]
@@ -265,11 +274,9 @@ def main():
             
                         
         xEstimate.append(X_state_current) 
-        xTrue.append(X_true_current.reshape(-1,1))
+        xTrue.append(X_true_current.copy().reshape(-1,1))
         time_steps.append(timeStamp)  # Store the current time step
 
-    print((xTrue))  
-    print(np.shape(xEstimate)) 
     rmse = computeRmse(xEstimate, xTrue) 
     print(rmse)
     plot_position_and_velocity(xEstimate, xTrue, time_steps)
